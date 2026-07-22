@@ -86,7 +86,8 @@ async def delete_tasks(id:int):
         return
     if flag == 1 :
         for task in tasks:
-            task["id"] -=1
+            if task["id"]>id:
+                task["id"] -=1
         raise HTTPException (status_code=status.HTTP_204_NO_CONTENT,
                              detail= {"Success": "The task was deleted Succesfull"})
         return

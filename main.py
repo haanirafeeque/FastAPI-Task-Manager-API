@@ -1,4 +1,5 @@
 from fastapi import FastAPI,HTTPException,status
+from pydantic import BaseModel
 
 app = FastAPI()
 
@@ -11,6 +12,10 @@ tasks = [
     }
 ]
 
+
+class Task(BaseModel):
+    title:str
+    Status:bool
 
 @app.get("/")
 async def root():
@@ -31,3 +36,15 @@ async def get_task_id(id:int):
             return task
     raise HTTPException (status_code=status.HTTP_404_NOT_FOUND, 
                          detail=  { "error": f"Task {id} not found" })
+
+
+@app.post("/tasks")
+async def create_tasks(task:Task):
+    id=len(tasks)+1
+    new_tasks={
+        "id":id,
+        "title":task.title,
+        "Status":task.Status
+    }
+    tasks.append(new_tasks)
+    return new_tasks

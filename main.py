@@ -40,11 +40,16 @@ async def get_task_id(id:int):
 
 @app.post("/tasks")
 async def create_tasks(task:Task):
-    id=len(tasks)+1
-    new_tasks={
-        "id":id,
-        "title":task.title,
-        "Status":task.Status
-    }
-    tasks.append(new_tasks)
-    return new_tasks
+    if task.title.strip() == "":
+        raise HTTPException (status_code=status.HTTP_400_BAD_REQUEST, 
+                         detail=  { "error": "Title was left empty" })
+        return  
+    else:               
+        id=len(tasks)+1
+        new_tasks={
+            "id":id,
+            "title":task.title,
+            "Status":task.Status
+        }
+        tasks.append(new_tasks)
+        return new_tasks

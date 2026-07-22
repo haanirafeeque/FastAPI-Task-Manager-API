@@ -15,7 +15,10 @@ tasks = [
 
 class Task(BaseModel):
     title:str
-    Status:bool
+
+class update_task(BaseModel):
+    title:str | None = None
+    Status:bool | None = None
 
 @app.get("/")
 async def root():
@@ -49,7 +52,25 @@ async def create_tasks(task:Task):
         new_tasks={
             "id":id,
             "title":task.title,
-            "Status":task.Status
+            "Status":False
         }
         tasks.append(new_tasks)
         return new_tasks
+    
+@app.post("/tasks/{id}")
+async def update_tasks(id:int ,updated_task:update_task ):
+    for task in tasks:
+        if task["id"] == id:
+            if updated_task.title == None and updated_task.Status == None:
+                raise HTTPException (status_code=status.HTTP_400_BAD_REQUEST, detail=  { "error": "Title/Status was left empty" })
+                return
+            elif updated_task.title is not None :
+                task["title"] = updated_task.title
+                return task
+            elif updated_task.Status is not None or updated_task.title==None:
+                task["Status"] = updated_task.Status
+                return task
+    raise HTTPException (status_code=status.HTTP_404_NOT_FOUND, 
+                         detail=  { "error": f"Task {id} not found" })
+
+    

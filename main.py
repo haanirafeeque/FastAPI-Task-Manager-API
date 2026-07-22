@@ -73,4 +73,20 @@ async def update_tasks(id:int ,updated_task:update_task ):
     raise HTTPException (status_code=status.HTTP_404_NOT_FOUND, 
                          detail=  { "error": f"Task {id} not found" })
 
-    
+@app.delete("/tasks/{id}")
+async def delete_tasks(id:int):
+    flag=0
+    for task in tasks:
+        if task["id"] == id:
+            flag=1
+            tasks.remove(task)
+    if flag == 0:
+        raise HTTPException (status_code=status.HTTP_404_NOT_FOUND, 
+                         detail=  { "error": f"Task {id} not found" })
+        return
+    if flag == 1 :
+        for task in tasks:
+            task["id"] -=1
+        raise HTTPException (status_code=status.HTTP_204_NO_CONTENT,
+                             detail= {"Success": "The task was deleted Succesfull"})
+        return

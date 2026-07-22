@@ -1,11 +1,33 @@
-from fastapi import FastAPI
+from fastapi import FastAPI,HTTPException,status
 
-app= FastAPI()
+app = FastAPI()
+
+tasks = [
+    {
+        "id":1,"title":"Study","Status" : False
+    },
+    {
+        "id":2,"title":"Writing","Status":True
+    }
+]
+
 
 @app.get("/")
-def index():
-    return {"data":{"name":"haani"}}
+async def root():
+    return{ "name": "Task API", "version": "1.0", "endpoints": ["/tasks"] }
 
-@app.get("/about")
-def about():
-    return "hi"
+@app.get("/health")
+async def root():
+    return{"Status": "OK"}
+
+@app.get("/tasks")
+async def get_task():
+    return tasks
+
+@app.get("/tasks/{id}")
+async def get_task_id(id:int):
+    for task in tasks:
+        if task["id"] == id:
+            return task
+    raise HTTPException (status_code=status.HTTP_404_NOT_FOUND, 
+                         detail=  { "error": f"Task {id} not found" })

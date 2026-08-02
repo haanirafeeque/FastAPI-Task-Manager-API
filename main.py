@@ -79,8 +79,8 @@ async def create_tasks(task:Task):
         return  
     else:               
         cur.execute("INSERT INTO tasks (title, done) VALUES (?, 0)",(task.title,))
-        con.commit
-        
+        con.commit()
+        return
         
 
 
@@ -123,21 +123,3 @@ async def delete_tasks(id:int):
         raise HTTPException (status_code=status.HTTP_204_NO_CONTENT,
                                     detail= {"Success": "The task was deleted Succesfull"})  
 
-"""
-    flag=0
-    for task in tasks:
-        if task["id"] == id:
-            flag=1
-            tasks.remove(task)
-    if flag == 0:
-        raise HTTPException (status_code=status.HTTP_404_NOT_FOUND, 
-                         detail=  { "error": f"Task {id} not found" })
-        return
-    if flag == 1 :
-        for task in tasks:
-            if task["id"]>id:
-                task["id"] -=1
-        raise HTTPException (status_code=status.HTTP_204_NO_CONTENT,
-                             detail= {"Success": "The task was deleted Succesfull"})
-        return
-"""

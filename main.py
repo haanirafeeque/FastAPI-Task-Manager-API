@@ -1,9 +1,18 @@
 from fastapi import FastAPI, HTTPException, status
 from pydantic import BaseModel
-    
-from database import init_database
+
+from database import (
+    init_database,
+    get_tasks,
+    get_task_by_id,
+    create_task,
+    update_task,
+    delete_task,
+)
+
 
 app = FastAPI()
+
 
 @app.on_event("startup")
 def startup():
@@ -11,91 +20,120 @@ def startup():
 
 
 class Task(BaseModel):
-    title:str
+    title: str
 
-class update_task(BaseModel):
-    title:str | None = None
-    Status:bool | None = None
+
+class UpdateTask(BaseModel):
+    title: str | None = None
+    Status: bool | None = None
+
 
 @app.get("/")
 async def root():
-    return{ "name": "Task API", "version": "1.0", "endpoints": ["/tasks"] }
+    return {
+        "name": "Task API",
+        "version": "1.0",
+        "endpoints": ["/tasks"]
+    }
+
 
 @app.get("/health")
-async def root():
-    return{"Status": "OK"}
+async def health():
+    return {
+        "Status": "OK"
+    }
 
+
+# GET ALL TASKS
 @app.get("/tasks")
-async def get_task():
-    f=cur.execute("SELECT * FROM TASKS")
-    res=f.fetchall()
-    tasks=[]
-    for i in res:
-        tasks.append({"id":i[0],"title":i[1],"Status":i[2]})
-    return tasks
+async def get_all_tasks():
+    return get_tasks()
 
 
+# GET TASK BY ID
 @app.get("/tasks/{id}")
-async def get_task_id(id:int):
-    f=cur.execute(f"Select * From TASKS WHERE ID = ?",(id,))
-    r=f.fetchone()
-    if r == None:
-        raise HTTPException (status_code=status.HTTP_404_NOT_FOUND, 
-                                 detail=  { "error": f"Task {id} not found" })
-    return {"id":r[0],"title":r[1],"Status":r[2]}
+async def get_task_id(id: int):
+    task = get_task_by_id(id)
+
+    if task is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={
+                "error": "Task not found"
+            }
+        )
+
+    return task
 
 
+# CREATE TASK
+@app.post("/tasks", status_code=status.HTTP_201_CREATED)
+async def create_tasks(task: Task):
 
-
-@app.post("/tasks")
-async def create_tasks(task:Task):
     if task.title.strip() == "":
-        raise HTTPException (status_code=status.HTTP_400_BAD_REQUEST, 
-                         detail=  { "error": "Title was left empty" })
-        return  
-    else:               
-        cur.execute("INSERT INTO tasks (title, done) VALUES (?, 0)",(task.title,))
-        con.commit()
-        return
-        
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "error": "Title was left empty"
+            }
+        )
+
+    return create_task(task.title)
 
 
-
-
+# UPDATE TASK
 @app.put("/tasks/{id}")
-async def update_tasks(id:int ,updated_task:update_task ):
-        f=cur.execute("SELECT * FROM TASKS WHERE ID = ?",(id,))
-        r=f.fetchone()
-        if r == None:
-             raise HTTPException (status_code=status.HTTP_404_NOT_FOUND, 
-                                     detail=  { "error": f"Task {id} not found" })
-        if updated_task.title == None and updated_task.Status == None:
-                    raise HTTPException (status_code=status.HTTP_400_BAD_REQUEST, detail=  { "error": "Title/Status was left empty" })
-        if updated_task.title is not None :
-            f=cur.execute("UPDATE TASKS SET TITLE = ? WHERE ID =?",(updated_task.title,id))
-            con.commit()
+async def update_tasks(id: int, updated_task: UpdateTask):
 
-        if updated_task.Status is not None :
-            f=cur.execute("UPDATE TASKS SET DONE = ? WHERE ID =?",(updated_task.Status,id))
-            con.commit()
-        f=cur.execute("SELECT * FROM TASKS WHERE ID =?",(id,))
-        r=f.fetchone()
-        return {"id":r[0],"title":r[1],"Status":r[2]}
-        
-   
+    if updated_task.title is None and updated_task.Status is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "error": "Title/Status was left empty"
+            }
+        )
+
+    # Get the current task first
+    current_task = get_task_by_id(id)
+
+    if current_task is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={
+                "error": f"Task {id} not found"
+            }
+        )
+
+    # Keep existing values if only one field is supplied
+    title = (
+        updated_task.title
+        if updated_task.title is not None
+        else current_task["title"]
+    )
+
+    done = (
+        updated_task.Status
+        if updated_task.Status is not None
+        else current_task["Status"]
+    )
+
+    updated = update_task(id, title, done)
+
+    return updated
 
 
+# DELETE TASK
+@app.delete("/tasks/{id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_tasks(id: int):
 
-@app.delete("/tasks/{id}")
-async def delete_tasks(id:int):
-    f=cur.execute("SELECT * FROM TASKS WHERE ID = ?",(id,))
-    r=f.fetchone()
-    if r == None:
-        raise HTTPException (status_code=status.HTTP_404_NOT_FOUND, 
-                                  detail=  { "error": f"Task {id} not found" })
-    else:
-        f=cur.execute("DELETE FROM TASKS WHERE ID = ?",(id,))
-        con.commit()
-        raise HTTPException (status_code=status.HTTP_204_NO_CONTENT,
-                                    detail= {"Success": "The task was deleted Succesfull"})  
+    deleted = delete_task(id)
 
+    if not deleted:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={
+                "error": f"Task {id} not found"
+            }
+        )
+
+    return None
